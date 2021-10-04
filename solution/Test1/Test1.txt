@@ -1,0 +1,289 @@
+1)Trying to Create the container by running command in Background
+
+[ec2-user@ip-172-31-80-131 ~]$ sudo docker run  -d  infracloudio/csvserver:latest
+Unable to find image 'infracloudio/csvserver:latest' locally
+latest: Pulling from infracloudio/csvserver
+ae43b40a9945: Pull complete
+7bb33bb2db38: Pull complete
+c82d72e1bb76: Pull complete
+Digest: sha256:20bc5a93fac217270fe5c88d639d82c6ecb18fc908283e046d9a3917a840ec1f
+Status: Downloaded newer image for infracloudio/csvserver:latest
+f2be86d5cf382fb9cfbf2f62e227acf6836f420643fce146338fe2baa886a0e6
+[ec2-user@ip-172-31-80-131 ~]$
+
+2) Container creation got failed becouse , its expecting ""inputdata" file
+
+[ec2-user@ip-172-31-80-131 ~]$ sudo docker ps -a
+CONTAINER ID   IMAGE                           COMMAND                  CREATED         STATUS                     PORTS     NAMES
+f2be86d5cf38   infracloudio/csvserver:latest   "/csvserver/csvserver"   2 minutes ago   Exited (1) 2 minutes ago             wonderful_wescoff   <--- Status is "Exited" insted of "running"
+
+
+3) with logs we could find the reasion of failure (expecting ""inputdata" file)
+
+[ec2-user@ip-172-31-80-131 ~]$ docker logs f2be86d5cf38
+2021/09/30 11:59:41 error while reading the file "/csvserver/inputdata": open /csvserver/inputdata: no such file or directory  <----This is the reasion container not created ( expecting ""inputdata" file)
+[ec2-user@ip-172-31-80-131 ~]$
+
+4) I have created on my Host server "csvserver" directory and created  "gencsv.sh" file to generate the "inputFile" file after its execution
+
+5) executed commad "docker run -d  -p 9393:9300   -v /csvserver/inputFile:/csvserver/inputdata infracloudio/csvserver:latest"
+
+part-1-cmd 
+
+docker run -d  -p 9393:9300   -v /csvserver/inputFile:/csvserver/inputdata infracloudio/csvserver:latest
+
+with setting env variable, we can use the below one
+
+docker run -d  --env CSVSERVER_BORDER=Orange -p 9393:9300   -v /csvserver/inputFile:/csvserver/inputdata infracloudio/csvserver:latest
+
+6) port mapping is very important from container port 9300 to Host port 9393 to access the UI from outside
+
+[root@ip-172-31-80-131 ~]# docker run -d  -p 9393:9300   -v /csvserver/inputFile:/csvserver/inputdata infracloudio/csvserver:latest
+Unable to find image 'infracloudio/csvserver:latest' locally
+latest: Pulling from infracloudio/csvserver
+ae43b40a9945: Pull complete
+7bb33bb2db38: Pull complete
+c82d72e1bb76: Pull complete
+Digest: sha256:20bc5a93fac217270fe5c88d639d82c6ecb18fc908283e046d9a3917a840ec1f
+Status: Downloaded newer image for infracloudio/csvserver:latest
+90eaa5c754ce5337977aeb8dc037570d2b59c1916cdfc5fe0c9b243e5359a2b9
+
+with env variable setting: docker run -d  --env CSVSERVER_BORDER=Orange -p 9393:9300   -v /csvserver/inputFile:/csvserver/inputdata infracloudio/csvserver:latest
+
+7) Container is UP and runnung fine
+
+[root@ip-172-31-80-131 ~]# docker ps -a
+CONTAINER ID   IMAGE                           COMMAND                  CREATED         STATUS         PORTS                                       NAMES
+90eaa5c754ce   infracloudio/csvserver:latest   "/csvserver/csvserver"   9 seconds ago   Up 8 seconds   0.0.0.0:9393->9300/tcp, :::9393->9300/tcp   hungry_swanson
+[root@ip-172-31-80-131 ~]#
+
+8) I am login to container with shell mode
+
+[ec2-user@ip-172-31-80-131 ~]$ docker exec -it 90eaa5c754ce  /bin/sh
+sh-4.4#
+sh-4.4#
+
+9) 
+[root@ip-172-31-80-131 ~]# docker exec -it 90eaa5c754ce  /bin/sh
+sh-4.4# netstat -anpe
+Active Internet connections (servers and established)
+Proto Recv-Q Send-Q Local Address           Foreign Address         State       User       Inode      PID/Program name
+tcp6       0      0 :::9300                 :::*                    LISTEN      0          99933      1/csvserver
+tcp6       0      0 172.17.0.2:9300         106.51.104.21:1116      ESTABLISHED 0          99976      1/csvserver
+Active UNIX domain sockets (servers and established)
+Proto RefCnt Flags       Type       State         I-Node   PID/Program name     Path
+Active Bluetooth connections (servers and established)
+Proto  Destination       Source            State         PSM DCID   SCID      IMTU    OMTU Security
+Proto  Destination       Source            State     Channel
+sh-4.4#
+
+
+10)
+sh-4.4# netstat -anpe | grep "LISTEN"
+tcp6       0      0 :::9300                 :::*                    LISTEN      0          99933      1/csvserver  <------ Container Port 9300
+sh-4.4#
+
+
+11)
+sh-4.4# netstat -tulnp
+Active Internet connections (only servers)
+Proto Recv-Q Send-Q Local Address           Foreign Address         State       PID/Program name
+tcp6       0      0 :::9300                 :::*                    LISTEN      1/csvserver
+sh-4.4#
+
+12)
+[root@ip-172-31-80-131 ~]# docker logs 90eaa5c754ce
+2021/09/30 15:54:20 listening on ****
+2021/09/30 15:54:42 wrote 597 bytes for /
+2021/09/30 15:54:42 wrote 597 bytes for /favicon.ico
+2021/09/30 16:07:47 wrote 597 bytes for /
+2021/09/30 16:07:47 wrote 597 bytes for /favicon.ico
+
+13)
+[root@ip-172-31-80-131 csvserver]# docker logs 90eaa5c754ce >& part-1-logs
+[root@ip-172-31-80-131 csvserver]# cat part-1-logs
+2021/09/30 15:54:20 listening on ****
+2021/09/30 15:54:42 wrote 597 bytes for /
+2021/09/30 15:54:42 wrote 597 bytes for /favicon.ico
+2021/09/30 16:07:47 wrote 597 bytes for /
+2021/09/30 16:07:47 wrote 597 bytes for /favicon.ico
+2021/09/30 16:19:18 wrote 597 bytes for /
+2021/09/30 16:19:18 wrote 597 bytes for /favicon.ico
+2021/09/30 16:19:21 wrote 597 bytes for /
+2021/09/30 16:19:22 wrote 597 bytes for /favicon.ico
+2021/09/30 16:19:26 wrote 597 bytes for /
+2021/09/30 16:19:26 wrote 597 bytes for /favicon.ico
+2021/09/30 17:03:38 wrote 597 bytes for /
+2021/09/30 17:03:39 wrote 597 bytes for /favicon.ico
+
+14) 
+[root@ip-172-31-80-131 csvserver]# cat inputFile
+0, 234
+1, 90
+2, 20
+3, 34
+4, 4
+5, 80
+6, 140
+7, 210
+8, 87
+9, 76
+
+15)
+
+part-1-cmd == docker run -d  -p 9393:9300   -v /csvserver/inputFile:/csvserver/inputdata infracloudio/csvserver:latest
+               or
+             docker run -d  --env CSVSERVER_BORDER=Orange -p 9393:9300   -v /csvserver/inputFile:/csvserver/inputdata infracloudio/csvserver:latest
+
+16)
+
+[root@ip-172-31-80-131 csvserver]# cat part-1-logs
+2021/09/30 15:54:20 listening on ****
+2021/09/30 15:54:42 wrote 597 bytes for /
+2021/09/30 15:54:42 wrote 597 bytes for /favicon.ico
+2021/09/30 16:07:47 wrote 597 bytes for /
+2021/09/30 16:07:47 wrote 597 bytes for /favicon.ico
+2021/09/30 16:19:18 wrote 597 bytes for /
+2021/09/30 16:19:18 wrote 597 bytes for /favicon.ico
+2021/09/30 16:19:21 wrote 597 bytes for /
+2021/09/30 16:19:22 wrote 597 bytes for /favicon.ico
+2021/09/30 16:19:26 wrote 597 bytes for /
+2021/09/30 16:19:26 wrote 597 bytes for /favicon.ico
+2021/09/30 17:03:38 wrote 597 bytes for /
+2021/09/30 17:03:39 wrote 597 bytes for /favicon.ico
+
+17)
+
+[root@ip-172-31-80-131 csvserver]# wget -O ./part-1-output http://172.31.80.131:9393/raw
+--2021-09-30 17:25:28--  http://172.31.80.131:9393/raw
+Connecting to 172.31.80.131:9393... connected.
+HTTP request sent, awaiting response... 200 OK
+Length: 143 [text/plain]
+Saving to: ‘./part-1-output’
+
+100%[===================================================================================================================================================================================================>] 143         --.-K/s   in 0s
+
+2021-09-30 17:25:28 (24.9 MB/s) - ‘./part-1-output’ saved [143/143]
+
+
+or
+
+[root@ip-172-31-80-131 csvserver]# curl -O ./part-1-output http://172.31.80.131:9393/raw
+  % Total    % Received % Xferd  Average Speed   Time    Time     Time  Current
+                                 Dload  Upload   Total   Spent    Left  Speed
+  0     0    0     0    0     0      0      0 --:--:-- --:--:-- --:--:--     0curl: (6) Could not resolve host: .
+Y3N2c2VydmVyIGdlbmVyYXRlZCBhdDogMTYzMzAxNzI2MA==
+CSVSERVER_BORDER: nil  <===================================its colour information not displayed becouse I have not set the envirnoment variable
+0,  234
+1,  90
+2,  20
+3,  34
+4,  4
+5,  80
+6,  140
+7,  210
+8,  87
+9,  76
+
+
+18)
+[root@ip-172-31-80-131 csvserver]# cat part-1-output
+Y3N2c2VydmVyIGdlbmVyYXRlZCBhdDogMTYzMzAxNzI2MA==
+CSVSERVER_BORDER: nil <===================================its colour information not displayed becouse I have not set the envirnoment variable
+0,  234
+1,  90
+2,  20
+3,  34
+4,  4
+5,  80
+6,  140
+7,  210
+8,  87
+9,  76
+
+
+19) gencsv.sh
+
+[root@ip-172-31-80-131 csvserver]# cat gencsv.sh
+#!/bin/sh
+
+echo "========= First task========="
+
+echo 0, 234 >> inputFile
+echo 1, 90 >> inputFile
+echo 2, 20 >> inputFile
+echo 3, 34 >> inputFile
+echo 4, 4 >> inputFile
+echo 5, 80 >> inputFile
+echo 6, 140 >> inputFile
+echo 7, 210 >> inputFile
+echo 8, 87 >> inputFile
+echo 9, 76 >> inputFile
+
+
+
+==============================================================================================================================================================
+By setting env variable CSVSERVER_BORDER=Orange
+==============================================================================================================================================================
+
+1) docker run -d  --env CSVSERVER_BORDER=Orange -p 9393:9300   -v /csvserver/inputFile:/csvserver/inputdata infracloudio/csvserver:latest
+
+[root@ip-172-31-80-131 ~]# docker run -d  --env CSVSERVER_BORDER=Orange -p 9393:9300   -v /csvserver/inputFile:/csvserver/inputdata infracloudio/csvserver:latest
+a9aeda27915174675530ad99572480572f9ab797da4ec7129be44d106baaa2bd
+
+
+2) 
+[root@ip-172-31-80-131 ~]# docker ps -a
+CONTAINER ID   IMAGE                           COMMAND                  CREATED         STATUS         PORTS                                       NAMES
+a9aeda279151   infracloudio/csvserver:latest   "/csvserver/csvserver"   5 seconds ago   Up 4 seconds   0.0.0.0:9393->9300/tcp, :::9393->9300/tcp   gracious_jemison
+
+3) 
+[root@ip-172-31-80-131 ~]#    docker logs a9aeda279151
+2021/09/30 17:52:02 listening on ****
+2021/09/30 17:52:03 wrote 629 bytes for /
+2021/09/30 17:52:03 wrote 629 bytes for /favicon.ico
+2021/09/30 17:52:18 wrote 629 bytes for /
+2021/09/30 17:52:19 wrote 629 bytes for /favicon.ico
+2021/09/30 17:58:50 wrote 146 bytes for /raw
+[root@ip-172-31-80-131 ~]#
+
+4)
+
+[root@ip-172-31-80-131 ~]# wget -O ./part-1-output http://172.31.80.131:9393/raw
+--2021-09-30 18:02:53--  http://172.31.80.131:9393/raw
+Connecting to 172.31.80.131:9393... connected.
+HTTP request sent, awaiting response... 200 OK
+Length: 146 [text/plain]
+Saving to: ‘./part-1-output’
+
+100%[===================================================================================================================================================================================================>] 146         --.-K/s   in 0s
+
+2021-09-30 18:02:53 (25.7 MB/s) - ‘./part-1-output’ saved [146/146]
+
+[root@ip-172-31-80-131 ~]# cat part-1-output
+Y3N2c2VydmVyIGdlbmVyYXRlZCBhdDogMTYzMzAyNDMyMg==
+CSVSERVER_BORDER: Orange <===================================its colour information
+0,  234
+1,  90
+2,  20
+3,  34
+4,  4
+5,  80
+6,  140
+7,  210
+8,  87
+9,  76
+
+
+5)
+[root@ip-172-31-80-131 ~]#   docker logs a9aeda279151  >& part-1-logs
+[root@ip-172-31-80-131 ~]# ls
+part-1-logs  part-1-output
+[root@ip-172-31-80-131 ~]# cat part-1-logs
+2021/09/30 17:52:02 listening on ****
+2021/09/30 17:52:03 wrote 629 bytes for /
+2021/09/30 17:52:03 wrote 629 bytes for /favicon.ico
+2021/09/30 17:52:18 wrote 629 bytes for /
+2021/09/30 17:52:19 wrote 629 bytes for /favicon.ico
+2021/09/30 17:58:50 wrote 146 bytes for /raw
+2021/09/30 18:02:53 wrote 146 bytes for /raw

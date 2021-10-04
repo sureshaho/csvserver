@@ -1,0 +1,73 @@
+http://54.145.254.204:9393/  <--- CSV Server
+http://54.145.254.204:9090/metrics <--- Promithius Server
+http://54.145.254.204:9090/graph  <--- Promithius Server
+
+1) Add Prometheus container (prom/prometheus:v2.22.0) to the docker-compose.yaml form part II.
+
+
+[root@ip-172-31-80-131 csvserver]# cat docker-compose.yaml
+ version: "3.7"
+
+ services:
+   app:
+     image: infracloudio/csvserver:latest
+     ports:
+       - 9393:9300
+     volumes:
+       - /csvserver/inputFile:/csvserver/inputdata
+     environment:
+       CSVSERVER_BORDER: Orange
+   Prometheus:
+     image: prom/prometheus:v2.22.0
+     ports:
+       - 9090:9090
+     volumes:
+       - /csvserver/prometheus.yml:/etc/prometheus/prometheus.yml
+
+2) created "prometheus.yml" file to add target information 
+
+[root@ip-172-31-80-131 csvserver]# cat prometheus.yml
+global:
+  scrape_interval:     5s
+  evaluation_interval: 15s
+
+rule_files:
+  # - "first.rules"
+  # - "second.rules"
+
+scrape_configs:
+  - job_name: 'prometheus'
+    scrape_interval:     5s
+    static_configs:
+      - targets: ["54.145.254.204:9393"]  <------ Target info
+[root@ip-172-31-80-131 csvserver]#
+
+3)  running docker-compose
+
+[root@ip-172-31-80-131 csvserver]# docker-compose up -d
+WARNING: The Docker Engine you're using is running in swarm mode.
+
+Compose does not use swarm mode to deploy services to multiple nodes in a swarm. All containers will be scheduled on the current node.
+
+To deploy your application across the swarm, use `docker stack deploy`.
+
+Creating network "csvserver_default" with the default driver
+Creating csvserver_app_1        ... done
+Creating csvserver_Prometheus_1 ... done
+[root@ip-172-31-80-131 csvserver]#
+
+4)
+
+[root@ip-172-31-80-131 csvserver]# docker ps -a
+CONTAINER ID   IMAGE                           COMMAND                  CREATED          STATUS          PORTS                                       NAMES
+3d24db1a68a9   prom/prometheus:v2.22.0         "/bin/prometheus --c…"   37 seconds ago   Up 35 seconds   0.0.0.0:9090->9090/tcp, :::9090->9090/tcp   csvserver_Prometheus_1
+af27d4dd5761   infracloudio/csvserver:latest   "/csvserver/csvserver"   37 seconds ago   Up 35 seconds   0.0.0.0:9393->9300/tcp, :::9393->9300/tcp   csvserver_app_1
+
+
+
+
+
+
+
+
+

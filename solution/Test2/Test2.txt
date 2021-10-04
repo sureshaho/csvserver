@@ -1,0 +1,154 @@
+===========================================================
+1)
+[root@ip-172-31-80-131 csvserver]# cat gencsv.sh
+#!/bin/sh
+
+echo "========= First task========="
+
+echo 0, 234 >> inputFile
+echo 1, 900 >> inputFile
+echo 2, 200 >> inputFile
+echo 3, 340 >> inputFile
+echo 4, 40 >> inputFile
+echo 5, 800 >> inputFile
+echo 6, 1400 >> inputFile
+echo 7, 2100 >> inputFile
+echo 8, 870 >> inputFile
+echo 9, 706 >> inputFile
+echo 10, 806 >> inputFile
+echo 11, 906 >> inputFile
+echo 12, 1006 >> inputFile
+echo 13, 106 >> inputFile
+echo 14, 206 >> inputFile
+echo 15, 306 >> inputFile
+
+2)
+[root@ip-172-31-80-131 csvserver]# cat inputFile
+0, 234
+1, 900
+2, 200
+3, 340
+4, 40
+5, 800
+6, 1400
+7, 2100
+8, 870
+9, 706
+10, 806
+11, 906
+12, 1006
+13, 106
+14, 206
+15, 306
+
+3)
+[root@ip-172-31-80-131 csvserver]# cat docker-compose.yaml
+ version: "3.7"
+
+ services:
+   app:
+     image: infracloudio/csvserver:latest
+     ports:
+       - 9393:9300
+     volumes:
+       - /csvserver/inputFile:/csvserver/inputdata
+     environment:
+       CSVSERVER_BORDER: Orange
+
+4)
+[root@ip-172-31-80-131 csvserver]# docker-compose up -d
+Pulling app (infracloudio/csvserver:latest)...
+latest: Pulling from infracloudio/csvserver
+ae43b40a9945: Pull complete
+7bb33bb2db38: Pull complete
+c82d72e1bb76: Pull complete
+Digest: sha256:20bc5a93fac217270fe5c88d639d82c6ecb18fc908283e046d9a3917a840ec1f
+Status: Downloaded newer image for infracloudio/csvserver:latest
+Creating csvserver_app_1 ... done
+
+5)
+[root@ip-172-31-80-131 csvserver]# docker ps -a
+CONTAINER ID   IMAGE                           COMMAND                  CREATED          STATUS          PORTS                                       NAMES
+8a9171630e0c   infracloudio/csvserver:latest   "/csvserver/csvserver"   15 seconds ago   Up 14 seconds   0.0.0.0:9393->9300/tcp, :::9393->9300/tcp   csvserver_app_1
+
+6)
+[root@ip-172-31-80-131 csvserver]# wget -O ./part-1-output http://172.31.80.131:9393/raw
+--2021-10-01 11:20:30--  http://172.31.80.131:9393/raw
+Connecting to 172.31.80.131:9393... connected.
+HTTP request sent, awaiting response... 200 OK
+Length: 210 [text/plain]
+Saving to: ‘./part-1-output’
+
+100%[===================================================================================================================================================================================================>] 210         --.-K/s   in 0s
+
+2021-10-01 11:20:30 (36.6 MB/s) - ‘./part-1-output’ saved [210/210]
+
+7)
+[root@ip-172-31-80-131 csvserver]# cat part-1-output
+Y3N2c2VydmVyIGdlbmVyYXRlZCBhdDogMTYzMzA4Njk0OQ==
+CSVSERVER_BORDER: Orange
+0,  234
+1,  900
+2,  200
+3,  340
+4,  40
+5,  800
+6,  1400
+7,  2100
+8,  870
+9,  706
+10,  806
+11,  906
+12,  1006
+13,  106
+14,  206
+15,  306
+
+8) [root@ip-172-31-80-131 csvserver]# docker logs 8a9171630e0c  >& part-1-logs
+
+9) 
+[root@ip-172-31-80-131 csvserver]# cat part-1-logs
+2021/10/01 11:15:49 listening on ****
+2021/10/01 11:16:22 wrote 837 bytes for /
+2021/10/01 11:16:23 wrote 837 bytes for /favicon.ico
+2021/10/01 11:20:30 wrote 210 bytes for /raw
+[root@ip-172-31-80-131 csvserver]#
+
+10)
+sh-4.4# netstat -anpe
+Active Internet connections (servers and established)
+Proto Recv-Q Send-Q Local Address           Foreign Address         State       User       Inode      PID/Program name
+tcp        0      0 127.0.0.11:39157        0.0.0.0:*               LISTEN      0          168631     -
+tcp6       0      0 :::9300                 :::*                    LISTEN      0          168772     1/csvserver
+tcp6       0      0 172.18.0.2:9300         106.51.104.21:2715      ESTABLISHED 0          168794     1/csvserver
+tcp6       0      0 172.18.0.2:9300         106.51.104.21:2712      ESTABLISHED 0          168792     1/csvserver
+udp        0      0 127.0.0.11:45582        0.0.0.0:*                           0          168630     -
+Active UNIX domain sockets (servers and established)
+Proto RefCnt Flags       Type       State         I-Node   PID/Program name     Path
+Active Bluetooth connections (servers and established)
+Proto  Destination       Source            State         PSM DCID   SCID      IMTU    OMTU Security
+Proto  Destination       Source            State     Channel
+sh-4.4#
+
+
+11)
+sh-4.4# netstat -anpe | grep "LISTEN"
+tcp        0      0 127.0.0.11:39157        0.0.0.0:*               LISTEN      0          168631     -
+tcp6       0      0 :::9300                 :::*                    LISTEN      0          168772     1/csvserver
+sh-4.4#
+
+12)
+sh-4.4# netstat -tulnp
+Active Internet connections (only servers)
+Proto Recv-Q Send-Q Local Address           Foreign Address         State       PID/Program name
+tcp        0      0 127.0.0.11:39157        0.0.0.0:*               LISTEN      -
+tcp6       0      0 :::9300                 :::*                    LISTEN      1/csvserver
+udp        0      0 127.0.0.11:45582        0.0.0.0:*                           -
+sh-4.4#
+
+
+
+
+
+
+
